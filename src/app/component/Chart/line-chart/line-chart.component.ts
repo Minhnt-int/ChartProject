@@ -34,6 +34,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   yAxis: any;
   chartContainer: any;
   g: any;
+  pointer: any = {};
   constructor() {
     this.width = this.comWidth - this.margin.left - this.margin.right;
     this.height = this.comHeight - this.margin.top - this.margin.bottom;
@@ -46,6 +47,8 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.drawAxis();
     this.drawLine();
     this.initZoom();
+    this.initTooltip();
+    this.pointerInit();
   }
   ngAfterViewInit(): void {}
   initSvg() {
@@ -110,6 +113,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
     let g = this.chartContainer
       .append('g')
+      .attr('class', 'line')
       .attr('stroke-linecap', 'round')
       .attr('stroke', 'black')
       .selectAll('g')
@@ -125,7 +129,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('y2', (d: any) => this.y(d.high));
 
     g.append('line')
-      .attr('class', 'line-point')
       .attr('y1', (d: any) => this.y(d.open))
       .attr('y2', (d: any) => this.y(d.close))
       .attr('stroke-width', 4)
@@ -163,10 +166,151 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
           this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
           this.g.select('.axis--x').call(this.xAxis);
 
-          this.y.range([0, this.width].map((d) => event.transform.applyY(d)));
+          this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
           this.g.select('.axis--y').call(this.yAxis);
           this.chartContainer.attr('transform', event.transform);
         })
     );
+  }
+
+  initTooltip() {
+    const data = this.data;
+    const x = this.x;
+    const y = this.y;
+    const line = this.line;
+    const margin = this.margin;
+    const svg = this.svg;
+    const height = this.height;
+    const width = this.width;
+
+    // if (line !== undefined)
+    //   this.svg
+    //     .append('path')
+    //     .attr('fill', 'none')
+    //     .attr('stroke', 'steelblue')
+    //     .attr('stroke-width', 1.5)
+    //     .attr('d', line(data))
+    //     .attr(
+    //       'transform',
+    //       'translate(' + this.margin.left + ',' + this.margin.top + ')'
+    //     );
+    const tooltip = this.svg.append('g');
+
+    function formatValue(value: any) {
+      return value.toLocaleString('en', {
+        style: 'currency',
+        currency: 'USD',
+      });
+    }
+
+    function formatDate(date: any) {
+      return date.toLocaleString('en', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+    }
+
+    // Add the event listeners that show or hide the tooltip.
+    const bisect = d3.bisector((d: any) => d.date).center;
+    function pointermoved(event: any) {
+      const i = bisect(data, x.invert(d3.pointer(event)[0] - margin.left));
+      tooltip.style('display', null);
+      tooltip.attr(
+        'transform',
+        `translate(${x(data[i].date) + margin.left},${
+          y(data[i].close) + margin.top
+        })`
+      );
+
+      const path = tooltip
+        .selectAll('path')
+        .data([,])
+        .join('path')
+        .attr('fill', 'white')
+        .attr('stroke', 'black');
+
+      const text = tooltip
+        .selectAll('text')
+        .data([,])
+        .join('text')
+        .call((text: any) =>
+          text
+            .selectAll('tspan')
+            .data([formatDate(data[i].date), formatValue(data[i].close)])
+            .join('tspan')
+            .attr('x', 0)
+            .attr('y', (_: any, i: number) => `${i * 1.1}em`)
+            .attr('font-weight', (_: any, i: number) => (i ? null : 'bold'))
+            .text((d: any) => d)
+        );
+
+      size(text, path);
+    }
+
+    function pointerleft() {
+      tooltip.style('display', 'none');
+    }
+
+    // Wraps the text with a callout path of the correct size, as measured in the page.
+    function size(text: any, path: any) {
+      const { x, y, width: w, height: h } = text.node().getBBox();
+      text.attr('transform', `translate(${-w / 2},${15 - y})`);
+      path.attr(
+        'd',
+        `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`
+      );
+    }
+    this.svg
+      .on('pointerenter pointermove', pointermoved)
+      .on('pointerleave', pointerleft)
+      .on('touchstart', (event: any) => event.preventDefault());
+  }
+
+  pointerInit() {
+    const svg = this.svg;
+    const height = this.height;
+    const width = this.width;
+    const verticalLine = svg
+      .append('line')
+      .attr('class', 'verticalLine')
+      .attr('y1', 0)
+      .attr('y2', height)
+      .attr('stroke', 'black')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', '5,5')
+      .attr('transform', 'translate(0,' + this.margin.top + ')');
+
+    const horizontalLine = svg
+      .append('line')
+      .attr('class', 'horizontalLine')
+      .attr('x1', 0)
+      .attr('x2', width)
+      .attr('stroke', 'black')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', '5,5')
+      .attr('transform', 'translate(' + this.margin.left + ', 0)');
+
+    const formatTime = d3.timeFormat('%d/%m/%y');
+
+    const bisect = d3.bisector((d: any) => d.date).center;
+    // Bắt sự kiện di chuyển chuột
+    svg.on('mousemove', (event: any) => {
+      const [x, y] = d3.pointer(event);
+      console.log(y);
+
+      verticalLine.attr('x1', x).attr('x2', x);
+      // Cập nhật vị trí đường kẻ ngang
+      horizontalLine.attr('y1', y).attr('y2', y);
+      const xx = bisect(this.data, this.x.invert(x - this.margin.left));
+      const yy = bisect(this.data, this.y.invert(y));
+
+      const date = formatTime(this.data[xx].date);
+      this.pointer = {
+        x: date,
+        y: this.y.invert(y).toFixed(2),
+      };
+    });
   }
 }
