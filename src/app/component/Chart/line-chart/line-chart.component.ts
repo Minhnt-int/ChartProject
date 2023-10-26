@@ -35,6 +35,10 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   chartContainer: any;
   g: any;
   pointer: any = {};
+  svgLine: any;
+  svgCandle: any;
+  visible = [true, true];
+
   constructor() {
     this.width = this.comWidth - this.margin.left - this.margin.right;
     this.height = this.comHeight - this.margin.top - this.margin.bottom;
@@ -111,7 +115,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .x((d: any) => this.x(d.date))
       .y((d: any) => this.y(d.close));
 
-    let g = this.chartContainer
+    this.svgCandle = this.chartContainer
       .append('g')
       .attr('class', 'line')
       .attr('stroke-linecap', 'round')
@@ -124,11 +128,13 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         (d: any) => `translate(${this.x(d.date) ? this.x(d.date) : 0},0)`
       );
 
-    g.append('line')
+    this.svgCandle
+      .append('line')
       .attr('y1', (d: any) => this.y(d.low))
       .attr('y2', (d: any) => this.y(d.high));
 
-    g.append('line')
+    this.svgCandle
+      .append('line')
       .attr('y1', (d: any) => this.y(d.open))
       .attr('y2', (d: any) => this.y(d.close))
       .attr('stroke-width', 4)
@@ -140,7 +146,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
           : d3.schemeSet1[8]
       );
 
-    this.chartContainer
+    this.svgLine = this.chartContainer
       .append('path')
       .datum(this.data)
       .attr('class', 'line')
@@ -304,7 +310,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       // Cập nhật vị trí đường kẻ ngang
       horizontalLine.attr('y1', y).attr('y2', y);
       const xx = bisect(this.data, this.x.invert(x - this.margin.left));
-      const yy = bisect(this.data, this.y.invert(y));
 
       const date = formatTime(this.data[xx].date);
       this.pointer = {
@@ -312,5 +317,23 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         y: this.y.invert(y).toFixed(2),
       };
     });
+  }
+
+  visibleChanges(x: boolean) {
+    if (x) {
+      this.visible[1] = !this.visible[1];
+    } else {
+      this.visible[0] = !this.visible[0];
+    }
+    if (!this.visible[0]) {
+      this.svgLine.attr('display', 'none');
+    } else {
+      this.svgLine.attr('display', 'unset');
+    }
+    if (!this.visible[1]) {
+      this.svgCandle.attr('display', 'none');
+    } else {
+      this.svgCandle.attr('display', 'unset');
+    }
   }
 }

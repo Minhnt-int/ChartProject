@@ -1,3 +1,19 @@
-<p>line-chart works!</p>
-<svg id="svg" width="900" height="500"></svg>
-<a href="">{{ pointer.x }} : {{ pointer.y }}</a>
+<div class="content-container row">
+  <svg class="col" id="svg" width="900" height="500"></svg>
+  <div class="col-2">
+    <div class="row">
+      <div class="col-1">
+        <input type="checkbox" (click)="visibleChanges(false)" />
+      </div>
+      <label class="col"> Biểu đồ đường </label>
+    </div>
+    <div class="row">
+      <div class="col-1">
+        <input type="checkbox" (click)="visibleChanges(true)" />
+      </div>
+      <label class="col"> Biểu đồ nến </label>
+    </div>
+
+    <a>{{ pointer.x }} : {{ pointer.y }}</a>
+  </div>
+</div>
