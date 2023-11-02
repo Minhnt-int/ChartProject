@@ -37,6 +37,14 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   pointer: any = {};
   svgLine: any;
   svgCandle: any;
+  point: number = this.data?.length;
+  currentData: any;
+  formatDate = d3.utcFormat('%B %-d, %Y');
+  formatValue = d3.format('.2f');
+  formatChange = (y0: number, y1: number) => {
+    const f = d3.format('+.2%');
+    return f((y1 - y0) / y0);
+  };
   visible = [true, true];
 
   constructor() {
@@ -53,6 +61,8 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.initZoom();
     this.initTooltip();
     this.pointerInit();
+    this.visibleChanges(true);
+    this.visibleChanges(false);
   }
   ngAfterViewInit(): void {}
   initSvg() {
@@ -68,18 +78,37 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.chartContainer = this.g.append('g').attr('class', 'chart-container');
   }
 
+  nextDate(date: Date) {
+    const ndate = new Date(date);
+    ndate.setDate(ndate.getDate() + 1);
+    return ndate;
+  }
+
+  setShowData() {
+    if (!!this.point) {
+      this.currentData = this.data.slice(
+        Math.max(this.point - 50, 0),
+        Math.min(this.data.length + 50, this.data.length)
+      );
+    } else
+      this.currentData = this.data.slice(Math.max(this.data.length - 100, 0));
+  }
+
   initAxis() {
     this.x = d3.scaleTime().range([0, this.width]);
     // this.x = D3.scaleBand()
-    //   .domain(D3.sort(this.data, (d) => -d.close).map((d) => d.date.toISOString()))
+    //   .domain(D3.sort(this.data, (d) => -d.CLOSE).map((d) => d.date.toISOString()))
     //   .range([this.margin.left, this.width])
     //   .padding(0.1);
-    let low = d3.min(this.data, (d: any) => d.low as number);
-    let high = d3.max(this.data, (d: any) => d.high as number);
+
+    let low = d3.min(this.data, (d: any) => parseInt(d.LOW));
+
+    let high = d3.max(this.data, (d: any) => parseInt(d.HIGH));
+    console.log(low, high, this.data[2000].LOW);
     this.y = d3
       .scaleLog()
       .domain([low ? low : 0, high ? high : 0])
-      .rangeRound([this.height, this.margin.top]);
+      .rangeRound([this.height, this.margin.bottom]);
     this.x.domain(
       d3.extent(this.data, (d: any) => {
         return d.date;
@@ -107,18 +136,28 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('dy', '.71em')
       .style('text-anchor', 'end')
       .text('Price ($)');
+
+    // this.g.append('title').text(
+    //   (d: any) => `date: ${this.formatDate(d.date)}
+    //   open: ${this.formatValue(d.OPEN)}
+    //   close: ${this.formatValue(d.CLOSE)} (${this.formatChange(
+    //     d.OPEN,
+    //     d.CLOSE
+    //   )})
+    //   low: ${this.formatValue(d.LOW)}
+    //   high: ${this.formatValue(d.HIGH)}`
+    // );
   }
 
   drawLine() {
     this.line = d3
       .line()
       .x((d: any) => this.x(d.date))
-      .y((d: any) => this.y(d.close));
+      .y((d: any) => this.y(d.CLOSE));
 
     this.svgCandle = this.chartContainer
       .append('g')
       .attr('class', 'line')
-      .attr('stroke-linecap', 'round')
       .attr('stroke', 'black')
       .selectAll('g')
       .data(this.data)
@@ -126,25 +165,25 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr(
         'transform',
         (d: any) => `translate(${this.x(d.date) ? this.x(d.date) : 0},0)`
-      );
-
-    this.svgCandle
-      .append('line')
-      .attr('y1', (d: any) => this.y(d.low))
-      .attr('y2', (d: any) => this.y(d.high));
-
-    this.svgCandle
-      .append('line')
-      .attr('y1', (d: any) => this.y(d.open))
-      .attr('y2', (d: any) => this.y(d.close))
-      .attr('stroke-width', 4)
+      )
       .attr('stroke', (d: any) =>
-        d.open > d.close
+        d.OPEN > d.CLOSE
           ? d3.schemeSet1[0]
-          : d.close > d.open
+          : d.CLOSE > d.OPEN
           ? d3.schemeSet1[2]
           : d3.schemeSet1[8]
       );
+
+    this.svgCandle
+      .append('line')
+      .attr('y1', (d: any) => this.y(d.LOW))
+      .attr('y2', (d: any) => this.y(d.HIGH));
+
+    this.svgCandle
+      .append('line')
+      .attr('y1', (d: any) => this.y(d.OPEN))
+      .attr('y2', (d: any) => this.y(d.CLOSE))
+      .attr('stroke-width', 4);
 
     this.svgLine = this.chartContainer
       .append('path')
@@ -155,10 +194,10 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   }
   initZoom() {
     const extent: [[number, number], [number, number]] = [
-      [this.margin.left, this.margin.top],
+      [0, 0],
       [
-        this.width + this.margin.right + this.margin.left,
-        this.height + this.margin.bottom + this.margin.top,
+        this.width + this.margin.left + this.margin.right,
+        this.height + this.margin.top + this.margin.bottom,
       ],
     ];
 
@@ -172,7 +211,11 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
           this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
           this.g.select('.axis--x').call(this.xAxis);
 
-          this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
+          this.y.range(
+            [this.height, this.margin.bottom].map((d) =>
+              event.transform.applyY(d)
+            )
+          );
           this.g.select('.axis--y').call(this.yAxis);
           this.chartContainer.attr('transform', event.transform);
         })
@@ -225,9 +268,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       tooltip.style('display', null);
       tooltip.attr(
         'transform',
-        `translate(${x(data[i].date) + margin.left},${
-          y(data[i].close) + margin.top
-        })`
+        `translate(${x(data[i].date) + margin.left},${y(data[i].CLOSE)})`
       );
 
       const path = tooltip
@@ -244,7 +285,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         .call((text: any) =>
           text
             .selectAll('tspan')
-            .data([formatDate(data[i].date), formatValue(data[i].close)])
+            .data([formatDate(data[i].date), formatValue(data[i].CLOSE)])
             .join('tspan')
             .attr('x', 0)
             .attr('y', (_: any, i: number) => `${i * 1.1}em`)
@@ -278,15 +319,16 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     const svg = this.svg;
     const height = this.height;
     const width = this.width;
+    const marginV = this.margin.top + this.margin.bottom;
     const verticalLine = svg
       .append('line')
       .attr('class', 'verticalLine')
       .attr('y1', 0)
-      .attr('y2', height)
+      .attr('y2', height - this.margin.bottom)
       .attr('stroke', 'black')
       .attr('stroke-width', 0.5)
       .attr('stroke-dasharray', '5,5')
-      .attr('transform', 'translate(0,' + this.margin.top + ')');
+      .attr('transform', 'translate(0,' + marginV + ')');
 
     const horizontalLine = svg
       .append('line')
@@ -304,7 +346,8 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     // Bắt sự kiện di chuyển chuột
     svg.on('mousemove', (event: any) => {
       const [x, y] = d3.pointer(event);
-      console.log(y);
+      // const [a, b] = d3.pointer(event);
+      // const [x, y] = [a + marginV, b];
 
       verticalLine.attr('x1', x).attr('x2', x);
       // Cập nhật vị trí đường kẻ ngang

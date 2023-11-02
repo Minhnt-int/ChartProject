@@ -1,1 +1,4 @@
-<app-line-chart [data]="ticker"></app-line-chart>
+<div *ngIf="!loading">
+  <app-line-chart [data]="data"></app-line-chart>
+</div>
+<button (click)="button()">{{ loading }}</button>
