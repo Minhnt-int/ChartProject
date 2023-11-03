@@ -466,11 +466,11 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         break;
     }
 
-    let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
-    this.visible.forEach((check, index) => {
-      if (!!check) {
-        arr[index].attr('display', 'unset');
-      } else arr[index].attr('display', 'none');
-    });
+    // let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
+    // this.visible.forEach((check, index) => {
+    //   if (!!check) {
+    //     arr[index].attr('display', 'unset');
+    //   } else arr[index].attr('display', 'none');
+    // });
   }
 }
