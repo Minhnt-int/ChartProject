@@ -448,29 +448,29 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     switch (x) {
       case 'line':
         this.visible[0] = !this.visible[0];
-        if (this.visible[0]) {
-          this.svgLine.attr('display', 'unset');
-        } else this.svgLine.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgLine.attr('display', 'unset');
+        // } else this.svgLine.attr('display', 'none');
         break;
       case 'candle':
         this.visible[1] = !this.visible[1];
-        if (this.visible[0]) {
-          this.svgCandle.attr('display', 'unset');
-        } else this.svgCandle.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgCandle.attr('display', 'unset');
+        // } else this.svgCandle.attr('display', 'none');
         break;
       case 'test':
         this.visible[2] = !this.visible[2];
-        if (this.visible[0]) {
-          this.svgBollinger.attr('display', 'unset');
-        } else this.svgBollinger.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgBollinger.attr('display', 'unset');
+        // } else this.svgBollinger.attr('display', 'none');
         break;
     }
 
-    // let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
-    // this.visible.forEach((check, index) => {
-    //   if (!!check) {
-    //     arr[index].attr('display', 'unset');
-    //   } else arr[index].attr('display', 'none');
-    // });
+    let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
+    this.visible.forEach((check, index) => {
+      if (!!check) {
+        arr[index].attr('display', 'unset');
+      } else arr[index].attr('display', 'none');
+    });
   }
 }
