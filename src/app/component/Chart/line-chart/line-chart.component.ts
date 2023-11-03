@@ -41,13 +41,14 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   svgCandle: any;
   point!: number;
   currentData: any;
+  svgBollinger: any;
   formatDate = d3.utcFormat('%B %-d, %Y');
   formatValue = d3.format('.2f');
   formatChange = (y0: number, y1: number) => {
     const f = d3.format('+.2%');
     return f((y1 - y0) / y0);
   };
-  visible = [true, true];
+  visible = [false, false, false];
 
   constructor() {
     this.width = this.comWidth - this.margin.left - this.margin.right;
@@ -63,8 +64,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.initZoom();
     this.initTooltip();
     this.pointerInit();
-    this.visibleChanges(true);
-    this.visibleChanges(false);
+    this.visibleChanges('candle');
   }
   ngAfterViewInit(): void {}
   initSvg() {
@@ -160,11 +160,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .x((d: any) => this.x(d.date))
       .y((d: any) => this.y(d.CLOSE));
 
-    this.line2 = d3
-      .line()
-      .x((d: any) => this.x(d.date))
-      .y((d: any) => this.y(d.OPEN));
-
     // const area = d3
     //   .area()
     //   .x((d: any) => this.x(d.date))
@@ -198,6 +193,20 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('d', areaRed);
     // .attr('opacity', 0.3);
 
+    this.svgBollinger = this.chartContainer.append('g');
+
+    this.line2 = d3
+      .line()
+      .x((d: any) => this.x(d.date))
+      .y((d: any) => this.y(d.OPEN));
+
+    this.svgLine2 = this.svgBollinger
+      .append('path')
+      .datum(this.currentData)
+      .attr('class', 'line')
+      .attr('d', this.line2)
+      .style('stroke-width', 2);
+
     let areaFillRed = d3
       .area()
       .defined((d: any) => !isNaN(d.OPEN) && !!d.OPEN)
@@ -205,7 +214,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .x((d: any) => this.x(d.date))
       .y0((d: any) => this.y(d.OPEN))
       .y1((d: any) => this.y(d.CLOSE));
-    this.chartContainer
+    this.svgBollinger
       .append('path')
       .attr('clip-path', `url(#clipPathRed)`)
       .datum(this.currentData)
@@ -219,7 +228,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .x((d: any) => this.x(d.date))
       .y0((d: any) => this.y(d.CLOSE))
       .y1((d: any) => this.y(d.OPEN));
-    this.chartContainer
+    this.svgBollinger
       .append('path')
       .attr('clip-path', `url(#clipPathGreen)`)
       .datum(this.currentData)
@@ -262,13 +271,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('class', 'line')
       .attr('d', this.line)
       .style('stroke-width', 3);
-
-    this.svgLine2 = this.chartContainer
-      .append('path')
-      .datum(this.currentData)
-      .attr('class', 'line')
-      .attr('d', this.line2)
-      .style('stroke-width', 1);
   }
   initZoom() {
     const extent: [[number, number], [number, number]] = [
@@ -442,21 +444,26 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     });
   }
 
-  visibleChanges(x: boolean) {
-    if (x) {
-      this.visible[1] = !this.visible[1];
-    } else {
-      this.visible[0] = !this.visible[0];
+  visibleChanges(x: string) {
+    switch (x) {
+      case 'line':
+        this.visible[0] = !this.visible[0];
+        break;
+      case 'candle':
+        this.visible[1] = !this.visible[1];
+
+        break;
+      case 'test':
+        this.visible[2] = !this.visible[2];
+
+        break;
     }
-    if (!this.visible[0]) {
-      this.svgLine.attr('display', 'none');
-    } else {
-      this.svgLine.attr('display', 'unset');
-    }
-    if (!this.visible[1]) {
-      this.svgCandle.attr('display', 'none');
-    } else {
-      this.svgCandle.attr('display', 'unset');
-    }
+
+    let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
+    this.visible.forEach((check, index) => {
+      if (!!check) {
+        arr[index].attr('display', 'unset');
+      } else arr[index].attr('display', 'none');
+    });
   }
 }

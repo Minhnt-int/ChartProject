@@ -5,15 +5,22 @@
   <div class="col-2">
     <div class="row">
       <div class="col-1">
-        <input type="checkbox" (click)="visibleChanges(false)" />
+        <input type="checkbox" (click)="visibleChanges('line')" />
       </div>
       <label class="col"> Biểu đồ đường </label>
     </div>
     <div class="row">
       <div class="col-1">
-        <input type="checkbox" (click)="visibleChanges(true)" />
+        <input type="checkbox" (click)="visibleChanges('candle')" checked />
       </div>
       <label class="col"> Biểu đồ nến </label>
+    </div>
+
+    <div class="row">
+      <div class="col-1">
+        <input type="checkbox" (click)="visibleChanges('test')" />
+      </div>
+      <label class="col"> Line2 test </label>
     </div>
 
     <a>{{ pointer.x }} : {{ pointer.y }}</a>
