@@ -30,14 +30,16 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   y: any;
   svg: any;
   line?: d3.Line<[number, number]>;
+  line2?: d3.Line<[number, number]>;
   xAxis: any;
   yAxis: any;
   chartContainer: any;
   g: any;
   pointer: any = {};
   svgLine: any;
+  svgLine2: any;
   svgCandle: any;
-  point: number = this.data?.length;
+  point!: number;
   currentData: any;
   formatDate = d3.utcFormat('%B %-d, %Y');
   formatValue = d3.format('.2f');
@@ -92,25 +94,27 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       );
     } else
       this.currentData = this.data.slice(Math.max(this.data.length - 100, 0));
+
+    console.log(this.currentData);
   }
 
   initAxis() {
+    this.setShowData();
     this.x = d3.scaleTime().range([0, this.width]);
     // this.x = D3.scaleBand()
     //   .domain(D3.sort(this.data, (d) => -d.CLOSE).map((d) => d.date.toISOString()))
     //   .range([this.margin.left, this.width])
     //   .padding(0.1);
 
-    let low = d3.min(this.data, (d: any) => parseInt(d.LOW));
+    let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
 
-    let high = d3.max(this.data, (d: any) => parseInt(d.HIGH));
-    console.log(low, high, this.data[2000].LOW);
+    let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
     this.y = d3
       .scaleLog()
       .domain([low ? low : 0, high ? high : 0])
       .rangeRound([this.height, this.margin.bottom]);
     this.x.domain(
-      d3.extent(this.data, (d: any) => {
+      d3.extent(this.currentData, (d: any) => {
         return d.date;
       })
     );
@@ -152,15 +156,82 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   drawLine() {
     this.line = d3
       .line()
+      // .defined(point => !isNaN(point.y))
       .x((d: any) => this.x(d.date))
       .y((d: any) => this.y(d.CLOSE));
+
+    this.line2 = d3
+      .line()
+      .x((d: any) => this.x(d.date))
+      .y((d: any) => this.y(d.OPEN));
+
+    // const area = d3
+    //   .area()
+    //   .x((d: any) => this.x(d.date))
+    //   .y0((d: any) => this.y(d.OPEN > d.CLOSE ? d.CLOSE : d.OPEN))
+    //   .y1((d: any) => this.y(d.OPEN < d.CLOSE ? d.CLOSE : d.OPEN));
+    const areaGreen = d3
+      .area()
+      .defined((d: any) => !isNaN(d.OPEN))
+      .x((d: any) => this.x(d.date))
+      .y(0)
+      .y1((d: any) => this.y(d.OPEN));
+    this.chartContainer
+      .append('clipPath')
+      .attr('id', 'clipPathGreen')
+      .append('path')
+      .datum(this.currentData)
+      .attr('d', areaGreen);
+
+    const areaRed = d3
+      .area()
+      .defined((d: any) => !isNaN(d.OPEN))
+      .x((d: any) => this.x(d.date))
+      .y(this.height)
+      .y1((d: any) => this.y(d.OPEN));
+    this.chartContainer
+      .append('clipPath')
+      .attr('id', 'clipPathRed')
+      .append('path')
+      .datum(this.currentData)
+      .attr('fill', 'lightsteelblue')
+      .attr('d', areaRed);
+    // .attr('opacity', 0.3);
+
+    let areaFillRed = d3
+      .area()
+      .defined((d: any) => !isNaN(d.OPEN) && !!d.OPEN)
+      .defined((d: any) => !isNaN(d.CLOSE) && !!d.CLOSE)
+      .x((d: any) => this.x(d.date))
+      .y0((d: any) => this.y(d.OPEN))
+      .y1((d: any) => this.y(d.CLOSE));
+    this.chartContainer
+      .append('path')
+      .attr('clip-path', `url(#clipPathRed)`)
+      .datum(this.currentData)
+      .attr('fill', '#ebc2af')
+      .attr('d', areaFillRed);
+
+    let areaFillGreen = d3
+      .area()
+      .defined((d: any) => !isNaN(d.OPEN))
+      .defined((d: any) => !isNaN(d.CLOSE))
+      .x((d: any) => this.x(d.date))
+      .y0((d: any) => this.y(d.CLOSE))
+      .y1((d: any) => this.y(d.OPEN));
+    this.chartContainer
+      .append('path')
+      .attr('clip-path', `url(#clipPathGreen)`)
+      .datum(this.currentData)
+      .attr('fill', '#ace1af')
+      .attr('d', areaFillGreen);
 
     this.svgCandle = this.chartContainer
       .append('g')
       .attr('class', 'line')
       .attr('stroke', 'black')
       .selectAll('g')
-      .data(this.data)
+      .data(this.currentData)
       .join('g')
       .attr(
         'transform',
@@ -187,10 +258,17 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
     this.svgLine = this.chartContainer
       .append('path')
-      .datum(this.data)
+      .datum(this.currentData)
       .attr('class', 'line')
       .attr('d', this.line)
       .style('stroke-width', 3);
+
+    this.svgLine2 = this.chartContainer
+      .append('path')
+      .datum(this.currentData)
+      .attr('class', 'line')
+      .attr('d', this.line2)
+      .style('stroke-width', 1);
   }
   initZoom() {
     const extent: [[number, number], [number, number]] = [
@@ -223,7 +301,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   }
 
   initTooltip() {
-    const data = this.data;
+    const data = this.currentData;
     const x = this.x;
     const y = this.y;
     const line = this.line;
@@ -268,7 +346,9 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       tooltip.style('display', null);
       tooltip.attr(
         'transform',
-        `translate(${x(data[i].date) + margin.left},${y(data[i].CLOSE)})`
+        `translate(${x(data[i].date) + margin.left},${
+          y(data[i].CLOSE) + margin.top
+        })`
       );
 
       const path = tooltip
@@ -352,9 +432,9 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       verticalLine.attr('x1', x).attr('x2', x);
       // Cập nhật vị trí đường kẻ ngang
       horizontalLine.attr('y1', y).attr('y2', y);
-      const xx = bisect(this.data, this.x.invert(x - this.margin.left));
+      const xx = bisect(this.currentData, this.x.invert(x - this.margin.left));
 
-      const date = formatTime(this.data[xx].date);
+      const date = formatTime(this.currentData[xx].date);
       this.pointer = {
         x: date,
         y: this.y.invert(y).toFixed(2),
