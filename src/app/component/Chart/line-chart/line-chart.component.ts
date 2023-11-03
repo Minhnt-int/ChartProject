@@ -448,14 +448,21 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     switch (x) {
       case 'line':
         this.visible[0] = !this.visible[0];
+        if (this.visible[0]) {
+          this.svgLine.attr('display', 'unset');
+        } else this.svgLine.attr('display', 'none');
         break;
       case 'candle':
         this.visible[1] = !this.visible[1];
-
+        if (this.visible[0]) {
+          this.svgCandle.attr('display', 'unset');
+        } else this.svgCandle.attr('display', 'none');
         break;
       case 'test':
         this.visible[2] = !this.visible[2];
-
+        if (this.visible[0]) {
+          this.svgBollinger.attr('display', 'unset');
+        } else this.svgBollinger.attr('display', 'none');
         break;
     }
 
