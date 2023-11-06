@@ -311,6 +311,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     const svg = this.svg;
     const height = this.height;
     const width = this.width;
+    const nextDate = this.nextDate;
 
     // if (line !== undefined)
     //   this.svg
@@ -367,7 +368,10 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         .call((text: any) =>
           text
             .selectAll('tspan')
-            .data([formatDate(data[i].date), formatValue(data[i].CLOSE)])
+            .data([
+              formatDate(nextDate(data[i].date)),
+              formatValue(data[i].CLOSE),
+            ])
             .join('tspan')
             .attr('x', 0)
             .attr('y', (_: any, i: number) => `${i * 1.1}em`)
@@ -448,29 +452,29 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     switch (x) {
       case 'line':
         this.visible[0] = !this.visible[0];
-        if (this.visible[0]) {
-          this.svgLine.attr('display', 'unset');
-        } else this.svgLine.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgLine.attr('display', 'unset');
+        // } else this.svgLine.attr('display', 'none');
         break;
       case 'candle':
         this.visible[1] = !this.visible[1];
-        if (this.visible[0]) {
-          this.svgCandle.attr('display', 'unset');
-        } else this.svgCandle.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgCandle.attr('display', 'unset');
+        // } else this.svgCandle.attr('display', 'none');
         break;
       case 'test':
         this.visible[2] = !this.visible[2];
-        if (this.visible[0]) {
-          this.svgBollinger.attr('display', 'unset');
-        } else this.svgBollinger.attr('display', 'none');
+        // if (this.visible[0]) {
+        //   this.svgBollinger.attr('display', 'unset');
+        // } else this.svgBollinger.attr('display', 'none');
         break;
     }
 
-    // let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
-    // this.visible.forEach((check, index) => {
-    //   if (!!check) {
-    //     arr[index].attr('display', 'unset');
-    //   } else arr[index].attr('display', 'none');
-    // });
+    let arr = [this.svgLine, this.svgCandle, this.svgBollinger];
+    this.visible.forEach((check, index) => {
+      if (!!check) {
+        arr[index].attr('display', 'unset');
+      } else arr[index].attr('display', 'none');
+    });
   }
 }
