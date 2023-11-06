@@ -69,15 +69,31 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   ngAfterViewInit(): void {}
   initSvg() {
     this.svg = d3.select('#svg');
-    this.svg.attr('width', this.comWidth).attr('height', this.comHeight);
+    this.svg
+      .attr('width', this.comWidth)
+      .attr('height', this.comHeight)
+      .style('pointer-events', 'none');
     this.g = this.svg
       .append('g')
       .attr(
         'transform',
         'translate(' + this.margin.left + ',' + this.margin.top + ')'
       );
+    let rect = this.g
+      .append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .style('fill', 'none')
+      .style('pointer-events', 'all');
 
-    this.chartContainer = this.g.append('g').attr('class', 'chart-container');
+    this.chartContainer = this.g
+      .append('svg')
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .append('g')
+      .attr('class', 'chart-container');
   }
 
   nextDate(date: Date) {
@@ -112,7 +128,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.y = d3
       .scaleLog()
       .domain([low ? low : 0, high ? high : 0])
-      .rangeRound([this.height, this.margin.bottom]);
+      .rangeRound([this.height, 0]);
     this.x.domain(
       d3.extent(this.currentData, (d: any) => {
         return d.date;
@@ -123,6 +139,9 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   drawAxis() {
     this.xAxis = d3.axisBottom(this.x);
     this.g
+      .append('svg')
+      .attr('width', this.width)
+      .attr('height', this.height + this.margin.bottom)
       .append('g')
       .attr('class', 'axis axis--x')
       .attr('transform', 'translate(0,' + this.height + ')')
@@ -274,14 +293,11 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   }
   initZoom() {
     const extent: [[number, number], [number, number]] = [
-      [0, 0],
-      [
-        this.width + this.margin.left + this.margin.right,
-        this.height + this.margin.top + this.margin.bottom,
-      ],
+      [this.margin.left, this.margin.top],
+      [this.width + this.margin.left, this.height + this.margin.top],
     ];
 
-    this.svg.call(
+    this.g.call(
       d3
         .zoom()
         .scaleExtent([1, 8])
@@ -289,13 +305,9 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         .extent(extent)
         .on('zoom', (event) => {
           this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
-          this.g.select('.axis--x').call(this.xAxis);
+          this.g.select('.axis--x').call(this.xAxis.scale(this.x));
 
-          this.y.range(
-            [this.height, this.margin.bottom].map((d) =>
-              event.transform.applyY(d)
-            )
-          );
+          this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
           this.g.select('.axis--y').call(this.yAxis);
           this.chartContainer.attr('transform', event.transform);
         })
@@ -405,16 +417,15 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     const svg = this.svg;
     const height = this.height;
     const width = this.width;
-    const marginV = this.margin.top + this.margin.bottom;
     const verticalLine = svg
       .append('line')
       .attr('class', 'verticalLine')
       .attr('y1', 0)
-      .attr('y2', height - this.margin.bottom)
+      .attr('y2', height)
       .attr('stroke', 'black')
       .attr('stroke-width', 0.5)
       .attr('stroke-dasharray', '5,5')
-      .attr('transform', 'translate(0,' + marginV + ')');
+      .attr('transform', 'translate(0,' + this.margin.top + ')');
 
     const horizontalLine = svg
       .append('line')
