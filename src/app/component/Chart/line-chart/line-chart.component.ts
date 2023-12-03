@@ -23,7 +23,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   @Input() comHeight: number = 500;
   title = 'Line Chart';
   tooltip: any;
-  margin = { top: 20, right: 20, bottom: 30, left: 50 };
+  margin = { top: 20, right: 0, bottom: 50, left: 50 };
   width: number;
   height: number;
   x: any;
@@ -204,9 +204,10 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
     let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
     this.y = d3
-      .scaleLog()
+      .scaleLinear()
       .domain([low ? low : 0, high ? high : 0])
       .rangeRound([this.height, 0]);
+
     this.x.domain(
       d3.extent(this.currentData, (d: any) => {
         return d.date;
@@ -216,9 +217,15 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
   drawAxis() {
     this.xAxis = d3.axisBottom(this.x);
+    // this.xAxis.style('transform', 'rotate(-45deg)');
+    this.xAxis.tickFormat(d3.timeFormat('%d/%m/%Y'));
 
     this.g.select('.axis--x').call(this.xAxis);
-
+    this.g
+      .select('.axis--x')
+      .selectAll('text')
+      .attr('transform', 'translate(10,0)rotate(45)')
+      .style('text-anchor', 'start');
     this.yAxis = d3.axisLeft(this.y);
 
     this.g.select('.axis--y').call(this.yAxis);
@@ -348,7 +355,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.g.call(
       d3
         .zoom()
-        .scaleExtent([0.8, 1.5])
+        .scaleExtent([1, 5])
         .translateExtent(extent)
         .extent(extent)
         .on('zoom', (event) => {
@@ -356,25 +363,27 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
           this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
 
-          const min = bisect(this.data, this.x.invert(0));
-          const max = bisect(this.data, this.x.invert(this.width));
+          // const min = bisect(this.data, this.x.invert(0));
+          // const max = bisect(this.data, this.x.invert(this.width));
 
-          this.currentData = this.data.slice(min, max);
-          console.log(mk, mx, min, max, this.currentData);
+          // this.currentData = this.data.slice(min, max);
+          // console.log(mk, mx, min, max, this.currentData);
 
-          // let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
+          let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
 
-          // let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
+          let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
           // this.y = d3
           //   .scaleLog()
           //   .domain([low ? low : 0, high ? high : 0])
           //   .rangeRound([this.height, 0]);
-          // this.yAxis = d3.axisLeft(this.y);
-          // this.g.select('.axis--x').call(this.xAxis.scale(this.x));
+          this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
 
-          // this.g.select('.axis--y').call(this.yAxis);
-          this.drawChart();
-          // this.chartContainer.attr('transform', event.transform);
+          this.yAxis = d3.axisLeft(this.y);
+          this.g.select('.axis--x').call(this.xAxis.scale(this.x));
+
+          this.g.select('.axis--y').call(this.yAxis.scale(this.y));
+          // this.drawChart();
+          this.chartContainer.attr('transform', event.transform);
         })
     );
   }
