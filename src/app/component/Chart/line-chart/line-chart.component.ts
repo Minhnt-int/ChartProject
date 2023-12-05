@@ -44,6 +44,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   svgBollinger: any;
   verticalLine: any;
   horizontalLine: any;
+  rect: any;
   formatDate = d3.utcFormat('%B %-d, %Y');
   formatValue = d3.format('.2f');
   formatChange = (y0: number, y1: number) => {
@@ -76,6 +77,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.initZoom();
     this.initTooltip();
     this.pointerInit();
+    this.initDrag();
   }
   initSvg() {
     //svg
@@ -90,7 +92,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         'transform',
         'translate(' + this.margin.left + ',' + this.margin.top + ')'
       );
-    let rect = this.g
+    this.rect = this.g
       .append('rect')
       .attr('x', 0)
       .attr('y', 0)
@@ -188,7 +190,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       );
     } else
       this.currentData = this.data.slice(Math.max(this.data.length - 100, 0));
-
     console.log(this.currentData);
   }
 
@@ -217,27 +218,22 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
   drawAxis() {
     this.xAxis = d3.axisBottom(this.x);
+    this.xAxis.ticks(5);
+
     // this.xAxis.style('transform', 'rotate(-45deg)');
     this.xAxis.tickFormat(d3.timeFormat('%d/%m/%Y'));
 
     this.g.select('.axis--x').call(this.xAxis);
-    this.g
-      .select('.axis--x')
-      .selectAll('text')
-      .attr('transform', 'translate(10,0)rotate(45)')
-      .style('text-anchor', 'start');
+    this.g.select('.axis--x');
+    // .selectAll('text')
+    // .attr('transform', 'translate(10,0)rotate(45)')
+    // .style('text-anchor', 'start');
     this.yAxis = d3.axisLeft(this.y);
 
     this.g.select('.axis--y').call(this.yAxis);
   }
 
   drawLine() {
-    this.line = d3
-      .line()
-      // .defined(point => !isNaN(point.y))
-      .x((d: any) => this.x(d.date))
-      .y((d: any) => this.y(d.CLOSE));
-
     // const area = d3
     //   .area()
     //   .x((d: any) => this.x(d.date))
@@ -340,6 +336,12 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('y2', (d: any) => this.y(d.CLOSE))
       .attr('stroke-width', 4);
 
+    this.line = d3
+      .line()
+      // .defined((point: any) => !isNaN(point.date))
+      // .defined((point: any) => !isNaN(point.CLOSE))
+      .x((d: any) => this.x(d.date))
+      .y((d: any) => this.y(d.CLOSE));
     this.chartContainer
       .select('#line')
       .datum(this.currentData)
@@ -408,12 +410,15 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     }
 
     function formatDate(date: any) {
-      return date.toLocaleString('en', {
-        month: 'short',
+      const options: Intl.DateTimeFormatOptions = {
         day: 'numeric',
+        month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
-      });
+      };
+
+      const formatter = new Intl.DateTimeFormat('vi-VN', options);
+      return formatter.format(date);
     }
 
     // Add the event listeners that show or hide the tooltip.
@@ -496,6 +501,48 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         y: this.y.invert(y).toFixed(2),
       };
     });
+  }
+
+  initDrag() {
+    // this.rect.on('mousedown', (event: any) => {
+    //   console.log(event);
+    // });
+    let rect = this.rect;
+    let data = this.data;
+    let x = this.x;
+    let width = this.width;
+
+    // Chọn phần tử cần kéo thả và áp dụng tính năng kéo thả
+    function dragStarted(event: any) {
+      startX = event.x;
+    }
+    let dragged = (event: any) => {
+      const deltaX = event.x - startX;
+      // chartContainer.attr('transform', `translate(${deltaX}, 0)`);
+      const bisect = d3.bisector((d: any) => d.date).center;
+
+      let min = bisect(data, x.invert(-deltaX));
+      let max = bisect(data, x.invert(width - deltaX));
+      if (max == this.data.length - 1) min = this.data.length - 100;
+      if (min == 0) max = 100;
+
+      this.currentData = data.slice(min, max);
+
+      this.drawChart();
+    };
+
+    function dragEnded(event: any) {
+      // console.log(event);
+    }
+
+    const drag = d3
+      .drag()
+      .on('start', dragStarted)
+      .on('drag', dragged)
+      .on('end', dragEnded);
+    rect.call(drag);
+    let startX: number;
+    // Các hàm xử lý sự kiện khi bắt đầu, kéo và kết thúc kéo
   }
 
   visibleChanges(x: string) {
