@@ -128,25 +128,25 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .text('Price ($)');
 
     //bollinger && line
-    this.chartContainer
+    this.svgBollinger = this.chartContainer.append('g');
+
+    this.svgBollinger
       .append('clipPath')
       .attr('id', 'clipPathGreen')
       .append('path')
       .attr('class', 'clipPathGreen');
-    this.chartContainer
+    this.svgBollinger
       .append('clipPath')
       .attr('id', 'clipPathRed')
       .append('path')
       .attr('class', 'clipPathRed');
-    this.svgBollinger = this.chartContainer.append('g');
 
     this.svgLine2 = this.svgBollinger.append('path').attr('class', 'line');
     this.svgBollinger.append('path').attr('class', 'redPath');
     this.svgBollinger.append('path').attr('class', 'greenPath');
-    this.svgCandle = this.chartContainer
-      .append('g')
-      .attr('class', 'line')
-      .attr('stroke', 'black');
+    this.svgCandle = this.chartContainer.append('g').attr('id', 'candle');
+    this.svgCandle.append('g');
+    // .attr('stroke', 'black');
     this.svgLine = this.chartContainer
       .append('path')
       .attr('class', 'line')
@@ -246,7 +246,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .y(0)
       .y1((d: any) => this.y(d.OPEN));
 
-    this.chartContainer
+    this.svgBollinger
       .select('.clipPathGreen')
       .datum(this.currentData)
       .attr('d', areaGreen);
@@ -258,7 +258,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .y(this.height)
       .y1((d: any) => this.y(d.OPEN));
 
-    this.chartContainer
+    this.svgBollinger
       .select('.clipPathRed')
       .datum(this.currentData)
       .attr('fill', 'lightsteelblue')
@@ -297,14 +297,16 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .x((d: any) => this.x(d.date))
       .y0((d: any) => this.y(d.CLOSE))
       .y1((d: any) => this.y(d.OPEN));
+
+    //Bollinger
     this.svgBollinger
       .select('.greenPath')
       .attr('clip-path', `url(#clipPathGreen)`)
       .datum(this.currentData)
       .attr('fill', '#ace1af')
       .attr('d', areaFillGreen);
-    this.svgCandle.remove();
-    this.svgCandle = this.chartContainer
+    this.svgCandle.selectAll('g').remove();
+    let x = this.svgCandle
       .append('g')
       .attr('class', 'line')
       .attr('stroke', 'black')
@@ -322,20 +324,39 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
           ? d3.schemeSet1[2]
           : d3.schemeSet1[8]
       );
+    console.log(this.svgCandle);
 
-    this.svgCandle
-      .append('line')
+    // this.svgCandle = this.chartContainer
+    //   .append('g')
+    //   .attr('class', 'line')
+    //   .attr('stroke', 'black')
+    //   .selectAll('g')
+    //   .data(this.currentData)
+    //   .join('g')
+    //   .attr(
+    //     'transform',
+    //     (d: any) => `translate(${this.x(d.date) ? this.x(d.date) : 0},0)`
+    //   )
+    //   .attr('stroke', (d: any) =>
+    //     d.OPEN > d.CLOSE
+    //       ? d3.schemeSet1[0]
+    //       : d.CLOSE > d.OPEN
+    //       ? d3.schemeSet1[2]
+    //       : d3.schemeSet1[8]
+    //   );
+
+    x.append('line')
       .attr('class', 'low-high')
       .attr('y1', (d: any) => this.y(d.LOW))
       .attr('y2', (d: any) => this.y(d.HIGH));
 
-    this.svgCandle
-      .append('line')
+    x.append('line')
       .attr('class', 'open-close')
       .attr('y1', (d: any) => this.y(d.OPEN))
       .attr('y2', (d: any) => this.y(d.CLOSE))
       .attr('stroke-width', 4);
 
+    //lineChart
     this.line = d3
       .line()
       // .defined((point: any) => !isNaN(point.date))
@@ -357,35 +378,34 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.g.call(
       d3
         .zoom()
-        .scaleExtent([1, 5])
+        .scaleExtent([0.5, 5])
         .translateExtent(extent)
         .extent(extent)
         .on('zoom', (event) => {
-          let { k: mk, x: mx } = event.transform;
+          // let { k: mk, x: mx } = event.transform;
 
-          this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
+          // this.x.range([0, this.width].map((d) => event.transform.applyX(d)));
 
-          // const min = bisect(this.data, this.x.invert(0));
-          // const max = bisect(this.data, this.x.invert(this.width));
+          // let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
 
-          // this.currentData = this.data.slice(min, max);
-          // console.log(mk, mx, min, max, this.currentData);
+          // let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
+          // // this.y = d3
+          // //   .scaleLog()
+          // //   .domain([low ? low : 0, high ? high : 0])
+          // //   .rangeRound([this.height, 0]);
+          // this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
 
-          let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
+          // this.yAxis = d3.axisLeft(this.y);
+          // this.g.select('.axis--x').call(this.xAxis.scale(this.x));
 
-          let high = d3.max(this.currentData, (d: any) => parseInt(d.HIGH));
-          // this.y = d3
-          //   .scaleLog()
-          //   .domain([low ? low : 0, high ? high : 0])
-          //   .rangeRound([this.height, 0]);
-          this.y.range([this.height, 0].map((d) => event.transform.applyY(d)));
+          // this.g.select('.axis--y').call(this.yAxis.scale(this.y));
+          // this.chartContainer.attr('transform', event.transform);
+          const min = bisect(this.data, this.x.invert(0));
+          const max = bisect(this.data, this.x.invert(this.width));
 
-          this.yAxis = d3.axisLeft(this.y);
-          this.g.select('.axis--x').call(this.xAxis.scale(this.x));
+          this.currentData = this.data.slice(min, max);
 
-          this.g.select('.axis--y').call(this.yAxis.scale(this.y));
           // this.drawChart();
-          this.chartContainer.attr('transform', event.transform);
         })
     );
   }
@@ -529,6 +549,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       this.currentData = data.slice(min, max);
 
       this.drawChart();
+      console.log(this.visible);
     };
 
     function dragEnded(event: any) {
