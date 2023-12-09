@@ -39,6 +39,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
   svgLine: any;
   svgLine2: any;
   svgCandle: any;
+  svgBar: any;
   point!: number;
   currentData: any;
   svgBollinger: any;
@@ -146,6 +147,13 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
     this.svgBollinger.append('path').attr('class', 'greenPath');
     this.svgCandle = this.chartContainer.append('g').attr('id', 'candle');
     this.svgCandle.append('g');
+
+    this.svgBar = this.chartContainer
+      .append('svg')
+      .attr('viewBox', [0, 0, this.width, this.height])
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .attr('style', 'max-width: 100%; height: auto;');
     // .attr('stroke', 'black');
     this.svgLine = this.chartContainer
       .append('path')
@@ -298,13 +306,14 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .y0((d: any) => this.y(d.CLOSE))
       .y1((d: any) => this.y(d.OPEN));
 
-    //Bollinger
     this.svgBollinger
       .select('.greenPath')
       .attr('clip-path', `url(#clipPathGreen)`)
       .datum(this.currentData)
       .attr('fill', '#ace1af')
       .attr('d', areaFillGreen);
+
+    //candle
     this.svgCandle.selectAll('g').remove();
     let x = this.svgCandle
       .append('g')
@@ -324,7 +333,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
           ? d3.schemeSet1[2]
           : d3.schemeSet1[8]
       );
-    console.log(this.svgCandle);
 
     // this.svgCandle = this.chartContainer
     //   .append('g')
@@ -368,7 +376,28 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .datum(this.currentData)
       .attr('d', this.line)
       .style('stroke-width', 3);
+
+    //Bar Chart
+
+    let low = d3.min(this.currentData, (d: any) => parseInt(d.LOW));
+    this.svgBar.select('g').remove();
+
+    this.svgBar
+      .append('g')
+      .attr('class', 'bars')
+      .attr('fill', 'steelblue')
+      .selectAll('rect')
+      .data(this.currentData)
+      .join('rect')
+      .attr('x', (d: any) => this.x(d.date))
+      .attr('y', (d: any) => this.y(low! + Math.abs(d.OPEN - d.CLOSE)))
+      .attr(
+        'height',
+        (d: any) => this.y(0) - this.y(Math.abs(d.OPEN - d.CLOSE))
+      )
+      .attr('width', 5);
   }
+
   initZoom() {
     const extent: [[number, number], [number, number]] = [
       [this.margin.left, this.margin.top],
@@ -423,9 +452,9 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
     const tooltip = this.tooltip;
     function formatValue(value: any) {
-      return value.toLocaleString('en', {
+      return value.toLocaleString('vi-VN', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'Đồng',
       });
     }
 
@@ -549,7 +578,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       this.currentData = data.slice(min, max);
 
       this.drawChart();
-      console.log(this.visible);
     };
 
     function dragEnded(event: any) {
