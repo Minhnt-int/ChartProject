@@ -156,9 +156,11 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       .attr('style', 'max-width: 100%; height: auto;');
     // .attr('stroke', 'black');
     this.svgLine = this.chartContainer
+      .append('g')
+      .attr('id', 'line')
       .append('path')
-      .attr('class', 'line')
-      .attr('id', 'line');
+      .attr('class', 'line');
+
     //tooltip
     this.tooltip = this.svg.append('g');
 
@@ -371,8 +373,7 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
       // .defined((point: any) => !isNaN(point.CLOSE))
       .x((d: any) => this.x(d.date))
       .y((d: any) => this.y(d.CLOSE));
-    this.chartContainer
-      .select('#line')
+    this.svgLine
       .datum(this.currentData)
       .attr('d', this.line)
       .style('stroke-width', 3);
@@ -472,43 +473,6 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
 
     // Add the event listeners that show or hide the tooltip.
     const bisect = d3.bisector((d: any) => d.date).center;
-    function pointermoved(event: any) {
-      const i = bisect(data, x.invert(d3.pointer(event)[0] - margin.left));
-      tooltip.style('display', null);
-      tooltip.attr(
-        'transform',
-        `translate(${x(data[i].date) + margin.left},${
-          y(data[i].CLOSE) + margin.top
-        })`
-      );
-
-      const path = tooltip
-        .selectAll('path')
-        .data([,])
-        .join('path')
-        .attr('fill', 'white')
-        .attr('stroke', 'black');
-
-      const text = tooltip
-        .selectAll('text')
-        .data([,])
-        .join('text')
-        .call((text: any) =>
-          text
-            .selectAll('tspan')
-            .data([
-              formatDate(nextDate(data[i].date)),
-              formatValue(data[i].CLOSE),
-            ])
-            .join('tspan')
-            .attr('x', 0)
-            .attr('y', (_: any, i: number) => `${i * 1.1}em`)
-            .attr('font-weight', (_: any, i: number) => (i ? null : 'bold'))
-            .text((d: any) => d)
-        );
-
-      size(text, path);
-    }
 
     function pointerleft() {
       tooltip.style('display', 'none');
@@ -523,10 +487,151 @@ export class LineChartComponent implements OnInit, AfterViewInit, OnChanges {
         `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`
       );
     }
-    this.svg
-      .on('pointerenter pointermove', pointermoved)
+
+    function candlePointer(event: any) {
+      console.log('can');
+
+      const i = bisect(data, x.invert(d3.pointer(event)[0]));
+
+      tooltip.style('display', null);
+      tooltip.attr(
+        'transform',
+        `translate(${d3.pointer(event)[0] + margin.left},${
+          d3.pointer(event)[1] + margin.top
+        })`
+      );
+
+      const path = tooltip
+        .selectAll('path')
+        .data([,])
+        .join('path')
+        .attr('fill', 'white')
+        .attr('stroke', 'black');
+
+      const candleText = tooltip
+        .selectAll('text')
+        .data([,])
+        .join('text')
+        .call((text: any) =>
+          text
+            .selectAll('tspan')
+            .data([
+              `Ngày: ${formatDate(nextDate(data[i].date))}`,
+              `Phiên mở: ${formatValue(data[i].OPEN)}`,
+              `Phiên đóng: ${formatValue(data[i].CLOSE)}`,
+            ])
+            .join('tspan')
+            .attr('x', 0)
+            .attr('y', (_: any, i: number) => `${i * 1.1}em`)
+            .attr('font-weight', (_: any, i: number) => (i ? null : 'bold'))
+            .text((d: any) => d)
+        );
+
+      size(candleText, path);
+    }
+
+    function linePointer(event: any) {
+      console.log('line');
+
+      const i = bisect(data, x.invert(d3.pointer(event)[0]));
+
+      tooltip.style('display', null);
+      tooltip.attr(
+        'transform',
+        `translate(${d3.pointer(event)[0] + margin.left},${
+          d3.pointer(event)[1] + margin.top
+        })`
+      );
+
+      const path = tooltip
+        .selectAll('path')
+        .data([,])
+        .join('path')
+        .attr('fill', 'white')
+        .attr('stroke', 'black');
+
+      const candleText = tooltip
+        .selectAll('text')
+        .data([,])
+        .join('text')
+        .call((text: any) =>
+          text
+            .selectAll('tspan')
+            .data([
+              `Ngày: ${formatDate(nextDate(data[i].date))}`,
+              `Phiên mở: ${formatValue(data[i].OPEN)}`,
+              `Phiên đóng: ${formatValue(data[i].CLOSE)}`,
+            ])
+            .join('tspan')
+            .attr('x', 0)
+            .attr('y', (_: any, i: number) => `${i * 1.1}em`)
+            .attr('font-weight', (_: any, i: number) => (i ? null : 'bold'))
+            .text((d: any) => d)
+        );
+
+      size(candleText, path);
+    }
+
+    function bollingerPointer(event: any) {
+      console.log('bol');
+
+      const i = bisect(data, x.invert(d3.pointer(event)[0]));
+
+      tooltip.style('display', null);
+      tooltip.attr(
+        'transform',
+        `translate(${d3.pointer(event)[0] + margin.left},${
+          d3.pointer(event)[1] + margin.top
+        })`
+      );
+
+      const path = tooltip
+        .selectAll('path')
+        .data([,])
+        .join('path')
+        .attr('fill', 'white')
+        .attr('stroke', 'black');
+
+      const candleText = tooltip
+        .selectAll('text')
+        .data([,])
+        .join('text')
+        .call((text: any) =>
+          text
+            .selectAll('tspan')
+            .data([
+              `Ngày: ${formatDate(nextDate(data[i].date))}`,
+              `Phiên mở: ${formatValue(data[i].OPEN)}`,
+              `Phiên đóng: ${formatValue(data[i].CLOSE)}`,
+            ])
+            .join('tspan')
+            .attr('x', 0)
+            .attr('y', (_: any, i: number) => `${i * 1.1}em`)
+            .attr('font-weight', (_: any, i: number) => (i ? null : 'bold'))
+            .text((d: any) => d)
+        );
+
+      size(candleText, path);
+    }
+    // this.svg
+    //   .on('pointerenter pointermove', pointermoved)
+    //   .on('pointerleave', pointerleft)
+    //   .on('touchstart', (event: any) => event.preventDefault());
+    this.svgCandle
+      .on('pointerenter pointermove', candlePointer)
       .on('pointerleave', pointerleft)
       .on('touchstart', (event: any) => event.preventDefault());
+    this.svgCandle.style('pointer-events', 'all');
+    this.svgLine
+      .on('pointerenter pointermove', linePointer)
+      .on('pointerleave', pointerleft)
+      .on('touchstart', (event: any) => event.preventDefault());
+    this.svgLine.style('pointer-events', 'all');
+    // this.svgBollinger
+    //   .on('pointerenter pointermove', bollingerPointer)
+    //   .on('pointerleave', pointerleft)
+    //   .on('touchstart', (event: any) => event.preventDefault());
+    // this.svgBollinger.style('pointer-events', 'all');
   }
 
   pointerInit() {
